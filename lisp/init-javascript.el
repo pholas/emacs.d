@@ -1,15 +1,16 @@
 (maybe-require-package 'json-mode)
 (maybe-require-package 'js2-mode)
+(maybe-require-package 'rjsx-mode)
 (maybe-require-package 'coffee-mode)
 (maybe-require-package 'typescript-mode)
 (maybe-require-package 'prettier-js)
 
 (defcustom preferred-javascript-mode
-  (first (remove-if-not #'fboundp '(js2-mode js-mode)))
+  (first (remove-if-not #'fboundp '(rjsx-mode Js2-mode js-mode)))
   "Javascript mode to use for .js files."
   :type 'symbol
   :group 'programming
-  :options '(js2-mode js-mode))
+  :options '(rjsx-mode js2-mode js-mode))
 
 (defconst preferred-javascript-indent-level 2)
 
@@ -48,6 +49,17 @@
 
 (add-to-list 'interpreter-mode-alist (cons "node" preferred-javascript-mode))
 
+(defadvice js-jsx-indent-line (after js-jsx-indent-line-after-hack activate)
+  "Workaround sgml-mode and follow airbnb component style."
+  (let* ((cur-line (buffer-substring-no-properties
+                    (line-beginning-position)
+                    (line-end-position))))
+    (if (string-match "^\\( +\\)\/?> *$" cur-line)
+        (let* ((empty-spaces (match-string 1 cur-line)))
+          (replace-regexp empty-spaces
+                          (make-string (- (length empty-spaces) sgml-basic-offset) 32)
+                          nil
+                          (line-beginning-position) (line-end-position))))))
 
 
 (when (and (executable-find "ag")

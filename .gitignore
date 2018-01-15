@@ -1,3 +1,4 @@
+/.recentf
 /url/cache
 /.emacs.desktop
 /auto-save-list
@@ -48,3 +49,5 @@ site-lisp/package/
 /rake.cache
 /plantuml.jar
 /magithub
+.DS_Store
+/cider-history

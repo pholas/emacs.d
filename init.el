@@ -1,6 +1,10 @@
 ;; -*- lexical-binding: t -*-
 (setq debug-on-error t)
 
+(setq url-proxy-services
+      '(("http" . "editor01.cn.ibm.com:13129")
+        ("https" . "editor01.cn.ibm.com:13129")))
+;; (setq url-proxy-services nil)
 ;;; This file bootstraps the configuration, which is divided into
 ;;; a number of other files.
 
@@ -49,6 +53,7 @@
 (require-package 'scratch)
 (require-package 'command-log-mode)
 
+(require 'init-evil)
 (require 'init-frame-hooks)
 (require 'init-xterm)
 (require 'init-themes)
@@ -117,6 +122,8 @@
 (require 'init-clojure-cider)
 (require 'init-common-lisp)
 
+(require 'init-yasnippet)
+
 (when *spell-check-support-enabled*
   (require 'init-spelling))
 
@@ -128,6 +135,7 @@
 ;;(require 'init-twitter)
 ;; (require 'init-mu)
 (require 'init-ledger)
+(require 'init-ztree)
 ;; Extra packages which don't require any configuration
 
 (require-package 'gnuplot)
@@ -173,6 +181,24 @@
 (require 'init-local nil t)
 
 
+(defun ediff-copy-both-to-C ()
+  (interactive)
+  (ediff-copy-diff ediff-current-difference nil 'C nil
+                   (concat
+                    (ediff-get-region-contents ediff-current-difference 'A ediff-control-buffer)
+                    (ediff-get-region-contents ediff-current-difference 'B ediff-control-buffer))))
+(defun add-d-to-ediff-mode-map () (define-key ediff-mode-map "d" 'ediff-copy-both-to-C))
+(add-hook 'ediff-keymap-setup-hook 'add-d-to-ediff-mode-map)
+
+(add-to-list 'default-frame-alist '(fullscreen . maximized))
+
+(defun switch-to-minibuffer-window ()
+  "switch to minibuffer window (if active)"
+  (interactive)
+  (when (active-minibuffer-window)
+    (select-frame-set-input-focus (window-frame (active-minibuffer-window)))
+    (select-window (active-minibuffer-window))))
+(global-set-key (kbd "<f8>") 'switch-to-minibuffer-window)
 
 (provide 'init)
 

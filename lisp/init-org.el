@@ -17,6 +17,37 @@
       org-export-kill-product-buffer-when-displayed t
       org-tags-column 80)
 
+(setq org-directory "~/myorg")
+(setq org-default-notes-file (concat org-directory "/main.org"))
+(setq org-deadline-warning-days 7)
+(setq org-export-html-style "<link rel=\"stylesheet\" type=\"text/css\" href=\"mystyles.css\">")
+
+
+;; Keybindings for org-mode
+;;(define-key org-mode-ma (kbd "<C-return>") 'org-insert-heading-respect-content)
+(setq org-deadline-warning-days 7)
+(setq org-timeline-show-empty-dates t)
+(setq org-insert-mode-line-in-empty-file t)
+
+;; Hides depends tasks in agenda view. C-c C-x o add the ordered property to a project.
+(setq org-enforce-todo-dependencies t)
+(setq org-enforce-todo-checkbox-dependencies t)
+
+
+(setq org-agenda-exporter-settings
+      '((ps-number-of-columns 1)
+        (ps-landscape-mode t)
+        (htmlize-output-type 'css)))
+
+;; iCal Sync Settings
+(setq org-combined-agenda-icalendar-file
+      "/Library/WebServer/Documents/OrgMode.ics")
+(add-hook 'org-after-save-iCalendar-file-hook
+          (lambda ()
+            (shell-command
+             "osascript -e 'tell application \"iCal\" to reload calendars'")))
+
+
 
 ;; Lots of stuff from http://doc.norang.ca/org-mode.html
 
@@ -110,10 +141,22 @@ typical word processor."
 (global-set-key (kbd "C-c c") 'org-capture)
 
 (setq org-capture-templates
-      `(("t" "todo" entry (file "")  ; "" => `org-default-notes-file'
-         "* NEXT %?\n%U\n" :clock-resume t)
+      `(
+        ;; ("t" "todo" entry (file "")   ; "" => `org-default-notes-file'
+        ;;  "* NEXT %?\n%U\n" :clock-resume t)
         ("n" "note" entry (file "")
          "* %? :NOTE:\n%U\n%a\n" :clock-resume t)
+        ("a" "Agenda" entry (file+headline "~/myorg/main.org" "Inbox") "* TODO %^{Brief Description} %^g:AGENDA:\n%?Added: %U \n %a")
+
+        ("c" "Calendar" entry (file+headline "~/myorg/main.org" "Calendar") "* %^{Brief Description} %^{Date}t\n%?Added: %U")
+        ("p" "Private" entry (file "~/myorg/privnotes.org") "\n* %^{topic} %T \n%i%?\n")
+        ;; ("t" "Todo" entry (file+headline "~/myorg/main.org" "Inbox") "* TODO %?\n  %i\n  %a")
+        ("t" "Todo [inbox]" entry
+         (file+headline "~/myorg/inbox.org" "Tasks")
+         "* TODO %i%?")
+        ("T" "Tickler" entry
+         (file+headline "~/myorg/tickler.org" "Tickler")
+         "* %i%? \n %U")
         ))
 
 
@@ -123,7 +166,9 @@ typical word processor."
 (setq org-refile-use-cache nil)
 
 ;; Targets include this file and any file contributing to the agenda - up to 5 levels deep
-(setq org-refile-targets '((nil :maxlevel . 5) (org-agenda-files :maxlevel . 5)))
+(setq org-refile-targets '((nil :maxlevel . 5)
+                           (org-agenda-files :maxlevel . 5)
+                           ("~/myorg/someday.org" :level . 1)))
 
 (after-load 'org-agenda
   (add-to-list 'org-agenda-after-show-hook 'org-show-entry))
@@ -175,11 +220,37 @@ typical word processor."
 
 (setq-default org-agenda-clockreport-parameter-plist '(:link t :maxlevel 3))
 
+(setq org-agenda-files '("~/myorg/inbox.org"
+                         "~/myorg/main.org"
+                         "~/myorg/tickler.org"))
+;; ;; org stuck projects settings
+;; ;;
+;; (setq org-stuck-projects
+;;       (quote
+;;        ("+PROJECT/-DONE-CANCELLED" nil ("NEXT" "TODO" "STARTED" "WAITING" "APPT") "")
+;;        ))
 
 (let ((active-project-match "-INBOX/PROJECT"))
 
   (setq org-stuck-projects
         `(,active-project-match ("NEXT")))
+
+  (setq org-agenda-include-diary t)
+  (setq org-agenda-skip-scheduled-if-done t)
+  (setq org-agenda-files '("main.org"))
+  (setq org-agenda-ndays 7)
+  (setq org-agenda-repeating-timestamp-show-all nil)
+  (setq org-agenda-restore-windows-after-quit t)
+  (setq org-agenda-show-all-dates t)
+  (setq org-agenda-skip-deadline-if-done t)
+  (setq org-agenda-skip-scheduled-if-done t)
+  (setq org-agenda-sorting-strategy (quote ((agenda time-up priority-down tag-up) (todo tag-up))))
+  (setq org-agenda-start-on-weekday nil)
+  (setq org-agenda-todo-ignore-deadlines t)
+  (setq org-agenda-todo-ignore-scheduled t)
+  (setq org-agenda-todo-ignore-with-date t)
+  (setq org-agenda-window-setup (quote other-window))
+  (setq org-agenda-dim-blocked-tasks 'invisible)
 
   (setq org-agenda-compact-blocks t
         org-agenda-sticky t
@@ -257,7 +328,116 @@ typical word processor."
             ;; (tags-todo "-NEXT"
             ;;            ((org-agenda-overriding-header "All other TODOs")
             ;;             (org-match-list-sublevels t)))
-            )))))
+            ))
+
+          ("Q" . "Custom queries")
+          ("Qa" "Archive search" search ""
+           ((org-agenda-files (file-expand-wildcards "~/archive/*.org"))))
+          ("Qw" "Website search" search ""
+           ((org-agenda-files (file-expand-wildcards "~/website/*.org"))))
+          ("Qb" "Projects and Archive" search ""
+           ((org-agenda-text-search-extra-files (file-expand-wildcards "~/archive/*.org"))))
+          ;; searches both projects and archive directories
+          ("QA" "Archive tags search" org-tags-view ""
+           ((org-agenda-files (file-expand-wildcards "~/archive/*.org"))))
+
+          ("W" "Office & Work Lists"
+           ((agenda "" ((org-agenda-ndays 1)))
+            (tags-todo "OFFICE"
+                       ((org-agenda-skip-function
+                         (quote
+                          (org-agenda-skip-entry-if 'scheduled 'deadline))
+                         )))
+            (tags-todo "PHONE"
+                       ((org-agenda-skip-function
+                         (quote
+                          (org-agenda-skip-entry-if 'scheduled 'deadline))
+                         )))
+            (tags-todo "EMACS"
+                       ((org-agenda-skip-function
+                         (quote
+                          (org-agenda-skip-entry-if 'scheduled 'deadline))
+                         )))
+            (tags-todo "XCODE"
+                       ((org-agenda-skip-function
+                         (quote
+                          (org-agenda-skip-entry-if 'scheduled 'deadline))
+                         )))
+            (tags-todo "EMAIL"
+                       ((org-agenda-skip-function
+                         (quote
+                          (org-agenda-skip-entry-if 'scheduled 'deadline))
+                         )))
+            (tags-todo "COMPUTER"
+                       ((org-agenda-skip-function (quote (org-agenda-skip-entry-if 'scheduled 'deadline)))))
+            ))
+
+          ("H" "Home List"
+           ((agenda "" ((org-agenda-ndays 1)))
+            (tags-todo "HOME" ((org-agenda-skip-function (quote (org-agenda-skip-entry-if 'scheduled 'deadline))))
+                       )
+            (tags-todo "COMPUTER"((org-agenda-skip-function (quote (org-agenda-skip-entry-if 'scheduled 'deadline))))
+                       )
+            (tags-todo "ONLINE"((org-agenda-skip-function (quote (org-agenda-skip-entry-if 'scheduled 'deadline))))
+                       )
+            (tags-todo "READING" ((org-agenda-skip-function (quote (org-agenda-skip-entry-if 'scheduled 'deadline))))
+                       )
+            ))
+
+          ("E" "Errands"
+           ((tags-todo "ERRANDS"((org-agenda-skip-function (quote (org-agenda-skip-entry-if 'scheduled 'deadline)))))
+            (tags-todo "PHONE")
+            (tags-todo "VIRGINIA"((org-agenda-skip-function (quote (org-agenda-skip-entry-if 'scheduled 'deadline)))))
+            (tags-todo "PRINCETON"((org-agenda-skip-function (quote (org-agenda-skip-entry-if 'scheduled 'deadline)))))
+            (tags-todo "ONLINE"
+                       ((org-agenda-skip-function
+                         (quote
+                          (org-agenda-skip-entry-if 'scheduled 'deadline))
+                         )))
+            ))
+
+          ("T" "People Agendas"
+           ((tags-todo "AGENDA"((org-agenda-sorting-strategy '(tag-up priority-down))))
+            (todo "WAITING")))
+
+
+          ("D" "Daily Action List"
+           (
+            (agenda "" ((org-agenda-ndays 1)
+                        (org-agenda-sorting-strategy
+                         (quote ((agenda time-up priority-down tag-up) )))
+                        (org-deadline-warning-days 0)
+                        ))))
+
+          ("A" "Tasks to be Archived" tags "LEVEL=2/DONE|CANCELLED" nil)
+
+          ("P" "Printed agenda"
+           ((agenda "" ((org-agenda-ndays 7)                      ;; overview of appointments
+                        (org-agenda-start-on-weekday nil)         ;; calendar begins today
+                        (org-agenda-repeating-timestamp-show-all t)
+                        (org-agenda-entry-types '(:timestamp :sexp))))
+            (agenda "" ((org-agenda-ndays 1)                      ;; daily agenda
+                        (org-deadline-warning-days 7)             ;; 7 day advanced warning for deadlines
+                        (org-agenda-sorting-strategy '(tag-up priority-down))
+                        (org-agenda-todo-keyword-format "[ ]")
+                        (org-agenda-scheduled-leaders '("" ""))
+                        (org-agenda-prefix-format "%t%s")))
+
+            (todo "TODO"                                          ;; todos sorted by context
+                  ((org-agenda-prefix-format "[ ]:")
+                   (org-agenda-skip-function '(org-agenda-skip-entry-if 'scheduled 'deadline))
+                   (org-agenda-sorting-strategy '(tag-up priority-down))
+                   (org-agenda-todo-keyword-format "")
+                   (org-agenda-overriding-header "\nTasks by Context\n------------------\n"))))
+           ((org-agenda-with-colors nil)
+            (org-agenda-compact-blocks t)
+            ;; (org-agenda-remove-tags t)
+            ;; (ps-number-of-columns 2)
+            ;; (ps-landscape-mode t)
+            )
+           ("~/agenda.html"))
+
+          )))
 
 
 (add-hook 'org-agenda-mode-hook 'hl-line-mode)
@@ -378,6 +558,25 @@ typical word processor."
      (,(if (locate-library "ob-sh") 'sh 'shell) . t)
      (sql . nil)
      (sqlite . t))))
+
+
+(add-hook 'org-agenda-mode-hook 'hl-line-mode)
+
+
+(add-to-list 'auto-mode-alist '("\\.org$" . org-mode))
+
+(global-set-key "\C-cl" 'org-store-link)
+(global-set-key "\C-ca" 'org-agenda)
+(global-set-key "\C-cc" 'org-capture)
+(global-set-key "\C-cb" 'org-iswitchb)
+
+
+                                        ; org mode start - added 20 Feb 2006
+;; The following lines are always needed. Choose your own keys.
+
+(global-set-key "\C-x\C-r" 'prefix-region)
+(global-set-key "\C-x\C-l" 'goto-line)
+(global-set-key "\C-x\C-y" 'copy-region-as-kill)
 
 
 (provide 'init-org)

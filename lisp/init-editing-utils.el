@@ -283,6 +283,7 @@ With arg N, insert N newlines."
     (indent-according-to-mode)
     (when (eolp)
       (delete-horizontal-space t))
+
     (goto-char loc)
     (while (> n 0)
       (cond ((bolp)
