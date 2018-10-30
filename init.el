@@ -1,5 +1,5 @@
 ;; -*- lexical-binding: t -*-
-(setq debug-on-error t)
+;; (setq debug-on-error t)
 
 (setq url-proxy-services
       '(("http" . "editor01.cn.ibm.com:13129")
